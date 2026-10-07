@@ -1,0 +1,25 @@
+# Cloud emulators (https://github.com/floci-io) behind the <cloud>-local stacks (stacks/deploy/*-local.yaml).
+#   docker compose -f compose.emulators.yaml up -d --wait aws    # aws | azure | gcp
+#   docker compose -f compose.emulators.yaml down
+# State is in memory: a restarted emulator is empty, so drop the matching terraform.tfstate.d too.
+services:
+  aws:
+    image: floci/floci:2.2.0
+    user: root # to use the Docker socket
+    ports: ["4566:4566"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # EKS cluster = a k3s container next to this one
+
+  azure:
+    image: floci/floci-az:0.14.0
+    ports: ["4577:4577"]
+    environment:
+      FLOCI_AZ_TLS_ENABLED: "true" # azurerm talks HTTPS only
+      # No k3s behind AKS: in 0.14.0 a real cluster never leaves `Creating` when the emulator runs in a container
+      FLOCI_AZ_SERVICES_AKS_MOCKED: "true"
+
+  gcp:
+    image: floci/floci-gcp:0.10.0
+    ports: ["4588:4588"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # GKE cluster = a k3s container next to this one

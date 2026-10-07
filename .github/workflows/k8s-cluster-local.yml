@@ -1,0 +1,69 @@
+name: Kubernetes Cluster (emulators)
+
+# Deploys and destroys the k8s-cluster component of every cloud against a local cloud emulator (https://github.com/floci-io):
+# the <cloud>-local stacks are the <cloud>-dev ones pointed at the emulator, so no cloud account, secrets or cost.
+# The same runs on a workstation: see compose.emulators.yaml and stacks/deploy/<cloud>-local.yaml.
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - components/terraform/*/k8s-cluster/**
+      - stacks/**
+      - atmos.yaml
+      - compose.emulators.yaml
+      - .github/actions/atmos-setup/**
+      - .github/workflows/k8s-cluster-local.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true # nothing to leak: emulator and state die with the runner
+
+jobs:
+  emulator:
+    name: ${{ matrix.cloud }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: [aws, azure, gcp]
+    env:
+      CLOUD: ${{ matrix.cloud }}
+      STACK: ${{ matrix.cloud }}-local
+      CLUSTER_NAME: ci
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Atmos setup
+        uses: $/.github/actions/atmos-setup
+        with:
+          cloud: ${{ matrix.cloud }}-local # no sign-in
+          atmos-version: ${{ vars.ATMOS_VERSION || '1.230.0' }}
+
+      - name: Start emulator
+        run: |
+          docker compose -f compose.emulators.yaml up -d --wait "$CLOUD"
+          case "$CLOUD" in
+            azure) # azurerm verifies the emulator's self-signed certificate
+              curl -sf http://localhost:4577/_floci/tls-cert | sudo tee /usr/local/share/ca-certificates/floci-az.crt > /dev/null
+              sudo update-ca-certificates ;;
+            gcp) # GKE endpoint of the stack; not every resolver maps *.localhost to loopback
+              echo "127.0.0.1 container.localhost" | sudo tee -a /etc/hosts > /dev/null ;;
+          esac
+
+      - name: Deploy
+        run: atmos terraform deploy k8s-cluster -s "$STACK"
+
+      - name: Destroy
+        run: atmos terraform destroy k8s-cluster -s "$STACK" -auto-approve
+
+      - name: Emulator logs
+        if: failure()
+        run: docker compose -f compose.emulators.yaml logs --tail 200 "$CLOUD"

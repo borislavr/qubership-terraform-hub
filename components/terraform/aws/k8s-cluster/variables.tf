@@ -31,3 +31,9 @@ variable "vpc_cidr" {
   description = "The CIDR block for the VPC."
   default     = "10.0.0.0/16"
 }
+
+variable "emulator" {
+  description = "Target is the floci AWS emulator (stacks/deploy/aws-local.yaml): skip what it does not implement."
+  type        = bool
+  default     = false
+}

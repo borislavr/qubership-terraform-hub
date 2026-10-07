@@ -79,7 +79,7 @@ module "eks" {
     }
 
     endpoint_public_access = true
-    enable_cluster_creator_admin_permissions = true
+    enable_cluster_creator_admin_permissions = !var.emulator # floci: no access policies
     create_cloudwatch_log_group = false
 
   vpc_id     = module.vpc.vpc_id
@@ -90,6 +90,8 @@ module "eks" {
       # Starting on 1.30, AL2023 is the default AMI type for EKS managed node groups
       name           = local.projectname
       ami_type       = "AL2023_x86_64_STANDARD"
+      # floci: no .../recommended/release_version SSM parameter
+      use_latest_ami_release_version = !var.emulator
       instance_types = [var.instance_type]
       capacity_type  = "SPOT"
 

@@ -4,7 +4,7 @@ description: >-
   Terraform, helm, helmfile, kubectl, jq come from the Atmos toolchain and are cached between runs with Terraform providers.
 inputs:
   cloud:
-    description: aws | azure | gcp
+    description: aws | azure | gcp. Anything else (e.g. aws-local, an emulator stack) skips the sign-in and only names the cache
     required: true
   atmos-version:
     description: Atmos release

@@ -1,0 +1,28 @@
+# The aws-dev cluster against the floci AWS emulator (EKS = a real k3s container) instead of AWS: no account, no cost.
+#   docker compose -f compose.emulators.yaml up -d --wait aws
+#   CLUSTER_NAME=<name> atmos terraform deploy k8s-cluster -s aws-local
+import:
+  - deploy/aws-dev
+
+vars:
+  stage: local
+
+terraform:
+  # State stays next to the component (terraform.tfstate.d/<cluster>), never in the real bucket
+  backend_type: local
+  backend:
+    local: {}
+  # Set here, not in the shell: this stack can't reach real AWS even with real credentials exported
+  env:
+    AWS_ENDPOINT_URL: http://localhost:4566
+    AWS_ACCESS_KEY_ID: test
+    AWS_SECRET_ACCESS_KEY: test
+    AWS_SESSION_TOKEN: ""
+    AWS_PROFILE: ""
+
+components:
+  terraform:
+    k8s-cluster:
+      vars:
+        emulator: true
+        kubernetes_version: "1.32" # newest version floci 2.2.0 lists EKS addons for

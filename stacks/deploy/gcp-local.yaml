@@ -1,0 +1,27 @@
+# The gcp-dev cluster against the floci GCP emulator (GKE = a real k3s container) instead of GCP: no project, no cost.
+#   docker compose -f compose.emulators.yaml up -d --wait gcp
+#   CLUSTER_NAME=<name> atmos terraform deploy k8s-cluster -s gcp-local
+import:
+  - deploy/gcp-dev
+
+vars:
+  stage: local
+
+terraform:
+  # State stays next to the component (terraform.tfstate.d/<cluster>), never in the real bucket
+  backend_type: local
+  backend:
+    local: {}
+  # Set here, not in the shell: this stack can't reach real GCP even with real credentials exported
+  env:
+    GOOGLE_PROJECT: floci-local
+    GOOGLE_OAUTH_ACCESS_TOKEN: test
+    GOOGLE_COMPUTE_CUSTOM_ENDPOINT: http://localhost:4588/compute/v1/
+    # Host, not path: the provider drops the last path segment of this endpoint and floci routes GKE by the `container.` label
+    GOOGLE_CONTAINER_CUSTOM_ENDPOINT: http://container.localhost:4588/
+
+components:
+  terraform:
+    k8s-cluster:
+      vars:
+        region: us-central1 # floci 0.10.0 knows us-central1 and europe-west1 only

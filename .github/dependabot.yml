@@ -9,3 +9,8 @@ updates:
     directory: "/.github/workflows"
     schedule:
       interval: "weekly"
+  # Emulator images of compose.emulators.yaml
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"

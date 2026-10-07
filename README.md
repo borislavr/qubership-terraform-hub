@@ -72,6 +72,16 @@ Documentation for individual tool/script can be found in docs folder, contents a
    ```
    In GitHub use **Kubernetes Cluster (Atmos)** and **Kubernetes Apps (Atmos)**, see [Kubernetes Installation](docs/kubernetes-install.md).
 
+5. **Test without a cloud account**
+   The `<cloud>-local` stacks are the `<cloud>-dev` ones pointed at a local [floci](https://github.com/floci-io) emulator, with local state. Needs Docker; Azure also needs the emulator certificate trusted, see [stacks/deploy/azure-local.yaml](stacks/deploy/azure-local.yaml).
+   ```bash
+   docker compose -f compose.emulators.yaml up -d --wait aws   # or azure / gcp
+   export CLUSTER_NAME=my-cluster
+   atmos terraform deploy k8s-cluster -s aws-local
+   atmos terraform destroy k8s-cluster -s aws-local -auto-approve
+   ```
+   Pull requests run the same for every cloud in **Kubernetes Cluster (emulators)**. Only the `k8s-cluster` Terraform is covered: what the emulators skip or lack is noted in the `*-local` stacks and [compose.emulators.yaml](compose.emulators.yaml).
+
 ---
 
 ## 📘 Standards & Change Policy

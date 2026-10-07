@@ -1,0 +1,27 @@
+# The azure-dev cluster against the floci Azure emulator instead of Azure: no subscription, no cost. AKS is mocked (no k3s behind it).
+# azurerm talks HTTPS only, so the emulator runs with TLS and its self-signed certificate (new on every start) must be trusted:
+#   docker compose -f compose.emulators.yaml up -d --wait azure
+#   curl -sf http://localhost:4577/_floci/tls-cert -o floci-az.crt
+#   sudo cp floci-az.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates   # Windows: certutil -user -addstore Root floci-az.crt
+#   CLUSTER_NAME=<name> atmos terraform deploy k8s-cluster -s azure-local
+import:
+  - deploy/azure-dev
+
+vars:
+  stage: local
+
+terraform:
+  # State stays next to the component (terraform.tfstate.d/<cluster>), never in the real storage account
+  backend_type: local
+  backend:
+    local: {}
+  # Set here, not in the shell: this stack can't reach real Azure even with real credentials exported
+  env:
+    ARM_ENVIRONMENT: stack
+    ARM_METADATA_HOSTNAME: localhost:4577
+    ARM_SUBSCRIPTION_ID: 00000000-0000-0000-0000-000000000001
+    ARM_TENANT_ID: 00000000-0000-0000-0000-000000000002
+    ARM_CLIENT_ID: 00000000-0000-0000-0000-000000000003
+    ARM_CLIENT_SECRET: test
+    ARM_USE_CLI: "false"
+    ARM_RESOURCE_PROVIDER_REGISTRATIONS: none
